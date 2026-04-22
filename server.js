@@ -41,7 +41,7 @@ app.get("/seed", async (req, res) => {
 
     await Profile.deleteMany({}); 
 
-    await Profile.insertMany(profiles);
+    await Profile.insertMany(json.profiles);
 
     res.json({
       status: "success",

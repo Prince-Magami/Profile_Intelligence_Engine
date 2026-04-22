@@ -1,29 +1,49 @@
-require("dotenv").config();
+app.get("/seed", async (req, res) => {
+  try {
+    const filePath = path.join(__dirname, "data", "profiles-2026.json");
+    const raw = fs.readFileSync(filePath, "utf-8");
+    const json = JSON.parse(raw);
 
-const fs = require("fs");
-const connectDB = require("./db");
-const Profile = require("./models/Profile");
+    const profiles = json.profiles;
 
-async function seed() {
-  await connectDB();
+    if (!Array.isArray(profiles)) {
+      return res.status(500).json({
+        status: "error",
+        message: "Invalid seed structure"
+      });
+    }
 
-  const raw = fs.readFileSync("./data/profiles-2026.json", "utf-8");
-  const json = JSON.parse(raw);
+    await Profile.deleteMany({});
 
-  const profiles = json.profiles; 
+    const formatted = profiles.map(p => ({
+      id: require("uuid").v7(),
+      name: p.name,
+      gender: p.gender,
+      gender_probability: p.gender_probability,
+      age: p.age,
+      age_group: p.age_group,
+      country_id: p.country_id,
+      country_name: p.country_name,
+      country_probability: p.country_probability,
+      created_at: new Date().toISOString()
+    }));
 
-  if (!Array.isArray(profiles)) {
-    throw new Error("Profiles is not an array");
+    await Profile.insertMany(formatted);
+
+    const count = await Profile.countDocuments();
+
+    res.json({
+      status: "success",
+      message: "Database seeded successfully",
+      total: count
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      status: "error",
+      message: "Seeding failed"
+    });
   }
-
-
-  await Profile.deleteMany({});
-
-  const result = await Profile.insertMany(profiles);
-
-  console.log("Inserted:", result.length);
-
-  process.exit(0);
-}
-
-seed();
+});

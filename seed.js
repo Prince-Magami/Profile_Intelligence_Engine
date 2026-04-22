@@ -16,20 +16,6 @@ async function seed() {
     throw new Error("Profiles is not an array");
   }
 
-  app.get("/debug-seed", async (req, res) => {
-  const fs = require("fs");
-
-  const raw = fs.readFileSync("./data/profiles-2026.json", "utf-8");
-  const json = JSON.parse(raw);
-
-  res.json({
-    type: typeof json,
-    hasProfilesKey: Object.prototype.hasOwnProperty.call(json, "profiles"),
-    profilesIsArray: Array.isArray(json.profiles),
-    profilesLength: json.profiles?.length,
-    firstProfile: json.profiles?.[0]
-  });
-});
 
   await Profile.deleteMany({});
 

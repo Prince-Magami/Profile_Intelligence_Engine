@@ -6,12 +6,52 @@ const fs = require("fs");
 const path = require("path");
 
 const connectDB = require("./db");
-const Profile = require("./models/Profile"); //
+const Profile = require("./models/Profile"); 
 const profileRoutes = require("./routes/profiles");
 
 const app = express();
 
 connectDB();
+
+connectDB().then(async () => {
+  try {
+    const count = await Profile.countDocuments();
+
+    if (count === 0) {
+      console.log("Auto-seeding database...");
+
+      const fs = require("fs");
+      const path = require("path");
+
+      const filePath = path.join(__dirname, "data", "profiles-2026.json");
+      const raw = fs.readFileSync(filePath, "utf-8");
+      const json = JSON.parse(raw);
+
+      const profiles = json.profiles;
+
+      const formatted = profiles.map((p, i) => ({
+        id: `${Date.now()}-${i}`,
+        name: p.name,
+        gender: p.gender,
+        gender_probability: p.gender_probability,
+        age: p.age,
+        age_group: p.age_group,
+        country_id: p.country_id,
+        country_name: p.country_name,
+        country_probability: p.country_probability,
+        created_at: new Date().toISOString()
+      }));
+
+      await Profile.insertMany(formatted);
+
+      console.log("Auto-seeding complete:", formatted.length);
+    } else {
+      console.log("Database already contains data:", count);
+    }
+  } catch (err) {
+    console.error("Auto-seed error:", err.message);
+  }
+});
 
 app.use(cors());
 app.use(express.json());

@@ -16,7 +16,7 @@ app.get("/seed", async (req, res) => {
     await Profile.deleteMany({});
 
     const formatted = profiles.map((p, index) => ({
-      id: `${Date.now()}-${index}`, // 🔥 SAFE UUID replacement
+      id: `${Date.now()}-${index}`, 
       name: p.name,
       gender: p.gender,
       gender_probability: p.gender_probability,

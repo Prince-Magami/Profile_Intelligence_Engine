@@ -4,54 +4,60 @@ app.get("/seed", async (req, res) => {
     const path = require("path");
 
     const filePath = path.join(__dirname, "data", "profiles-2026.json");
+
+    if (!fs.existsSync(filePath)) {
+      throw new Error("Seed file not found");
+    }
+
     const raw = fs.readFileSync(filePath, "utf-8");
     const json = JSON.parse(raw);
 
     const profiles = json.profiles;
 
-    if (!profiles || !Array.isArray(profiles)) {
-      return res.status(500).json({
-        status: "error",
-        message: "Invalid JSON structure"
-      });
+    if (!Array.isArray(profiles)) {
+      throw new Error("Invalid profiles array");
     }
 
-    console.log("Profiles loaded:", profiles.length);
+    console.log("Loaded profiles:", profiles.length);
 
-    // 🔥 HARD RESET DATABASE
+    // 🔥 Clear DB
     await Profile.deleteMany({});
 
-    const formatted = profiles.map((p, i) => ({
-      id: `${Date.now()}-${i}`,
-      name: p.name,
-      gender: p.gender,
-      gender_probability: Number(p.gender_probability),
-      age: Number(p.age),
-      age_group: p.age_group,
-      country_id: p.country_id,
-      country_name: p.country_name,
-      country_probability: Number(p.country_probability),
-      created_at: new Date().toISOString()
-    }));
+    let inserted = 0;
 
-    const result = await Profile.insertMany(formatted);
+    // 🔥 INSERT ONE BY ONE (NO SILENT FAILURES)
+    for (const p of profiles) {
+      if (!p.name || !p.gender || !p.age) continue;
 
-    console.log("Inserted:", result.length);
+      const doc = new Profile({
+        id: `${Date.now()}-${inserted}`,
+        name: String(p.name),
+        gender: String(p.gender),
+        gender_probability: Number(p.gender_probability || 0),
+        age: Number(p.age),
+        age_group: String(p.age_group),
+        country_id: String(p.country_id),
+        country_name: String(p.country_name),
+        country_probability: Number(p.country_probability || 0),
+        created_at: new Date().toISOString()
+      });
 
-    const count = await Profile.countDocuments();
+      await doc.save();
+      inserted++;
+    }
 
     return res.json({
       status: "success",
       message: "Database seeded successfully",
-      total: count
+      total: inserted
     });
 
   } catch (err) {
-    console.error("SEED ERROR FULL:", err);
+    console.error("🔥 FINAL SEED ERROR:", err);
 
     return res.status(500).json({
       status: "error",
-      message: "Failed to seed database"
+      message: err.message
     });
   }
 });

@@ -32,7 +32,68 @@ app.get("/seed", async (req, res) => {
     await Profile.deleteMany({});
     console.log("STEP 7: Database cleared");
 
-    await Profile.insertMany(profiles);
+    await Profile.insertMany(profiles);app.get("/seed", async (req, res) => {
+  try {
+    const fs = require("fs");
+    const path = require("path");
+
+    const filePath = path.join(__dirname, "data", "profiles-2026.json");
+    const raw = fs.readFileSync(filePath, "utf-8");
+    const json = JSON.parse(raw);
+
+    const profiles = json.profiles;
+
+    if (!Array.isArray(profiles)) {
+      return res.status(500).json({
+        status: "error",
+        message: "Invalid profiles format"
+      });
+    }
+
+    // 🔥 Clear database
+    await Profile.deleteMany({});
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const p of profiles) {
+      try {
+        if (!p.name) continue;
+
+        await Profile.create({
+          name: String(p.name),
+          gender: String(p.gender || ""),
+          gender_probability: Number(p.gender_probability || 0),
+          age: Number(p.age || 0),
+          age_group: String(p.age_group || ""),
+          country_id: String(p.country_id || ""),
+          country_name: String(p.country_name || ""),
+          country_probability: Number(p.country_probability || 0),
+          created_at: new Date().toISOString()
+        });
+
+        successCount++;
+      } catch (err) {
+        failCount++;
+      }
+    }
+
+    return res.json({
+      status: "success",
+      message: "Seeding completed",
+      inserted: successCount,
+      failed: failCount
+    });
+
+  } catch (err) {
+    console.error("SEED ERROR:", err);
+
+    return res.status(500).json({
+      status: "error",
+      message: err.message
+    });
+  }
+});
     console.log("STEP 8: Inserted into DB");
 
     const count = await Profile.countDocuments();

@@ -9,14 +9,14 @@ app.get("/seed", async (req, res) => {
     if (!Array.isArray(profiles)) {
       return res.status(500).json({
         status: "error",
-        message: "Invalid seed structure"
+        message: "Invalid JSON structure"
       });
     }
 
     await Profile.deleteMany({});
 
-    const formatted = profiles.map(p => ({
-      id: require("uuid").v7(),
+    const formatted = profiles.map((p, index) => ({
+      id: `${Date.now()}-${index}`, // 🔥 SAFE UUID replacement
       name: p.name,
       gender: p.gender,
       gender_probability: p.gender_probability,
@@ -39,11 +39,11 @@ app.get("/seed", async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("SEED ERROR:", err);
 
     res.status(500).json({
       status: "error",
-      message: "Seeding failed"
+      message: "Failed to seed database"
     });
   }
 });

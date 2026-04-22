@@ -3,156 +3,190 @@ const router = express.Router();
 const Profile = require("../models/Profile");
 const parseNaturalQuery = require("../utils/queryParser");
 
+const allowedSort = ["age", "created_at", "gender_probability"];
+const allowedOrder = ["asc", "desc"];
 
-router.get("/", async (req,res)=>{
+const isValidNumber = (value) => {
+  return value !== undefined && value !== "" && !isNaN(value);
+};
 
- try {
 
-   let query={};
+router.get("/", async (req, res) => {
+  try {
 
-   if(req.query.gender){
-     query.gender = req.query.gender.toLowerCase();
-   }
+    let query = {};
 
-   if(req.query.age_group){
-     query.age_group = req.query.age_group.toLowerCase();
-   }
+    if (req.query.gender) {
+      query.gender = req.query.gender.toLowerCase();
+    }
 
-   if(req.query.country_id){
-     query.country_id = req.query.country_id.toUpperCase();
-   }
+    if (req.query.age_group) {
+      query.age_group = req.query.age_group.toLowerCase();
+    }
 
-   if(req.query.min_age || req.query.max_age){
-      query.age={};
+    if (req.query.country_id) {
+      query.country_id = req.query.country_id.toUpperCase();
+    }
 
-      if(req.query.min_age){
-        query.age.$gte=Number(req.query.min_age);
+    if (req.query.min_age || req.query.max_age) {
+
+      query.age = {};
+
+      if (req.query.min_age !== undefined) {
+        if (!isValidNumber(req.query.min_age)) {
+          return res.status(422).json({
+            status: "error",
+            message: "Invalid query parameters"
+          });
+        }
+        query.age.$gte = Number(req.query.min_age);
       }
 
-      if(req.query.max_age){
-        query.age.$lte=Number(req.query.max_age);
+      if (req.query.max_age !== undefined) {
+        if (!isValidNumber(req.query.max_age)) {
+          return res.status(422).json({
+            status: "error",
+            message: "Invalid query parameters"
+          });
+        }
+        query.age.$lte = Number(req.query.max_age);
       }
-   }
+    }
 
-   if(req.query.min_gender_probability){
-      query.gender_probability={
-       $gte:Number(req.query.min_gender_probability)
+    if (req.query.min_gender_probability) {
+      if (!isValidNumber(req.query.min_gender_probability)) {
+        return res.status(422).json({
+          status: "error",
+          message: "Invalid query parameters"
+        });
+      }
+
+      query.gender_probability = {
+        $gte: Number(req.query.min_gender_probability)
       };
-   }
+    }
 
-   if(req.query.min_country_probability){
-      query.country_probability={
-       $gte:Number(req.query.min_country_probability)
+    if (req.query.min_country_probability) {
+      if (!isValidNumber(req.query.min_country_probability)) {
+        return res.status(422).json({
+          status: "error",
+          message: "Invalid query parameters"
+        });
+      }
+
+      query.country_probability = {
+        $gte: Number(req.query.min_country_probability)
       };
-   }
+    }
 
-   let sort={};
 
-   if(req.query.sort_by){
-      let direction=
-      req.query.order==="desc" ? -1 : 1;
+    let sort = {};
 
-      sort[req.query.sort_by]=direction;
-   }
+    if (req.query.sort_by) {
 
-   let page=parseInt(req.query.page)||1;
+      if (!allowedSort.includes(req.query.sort_by)) {
+        return res.status(422).json({
+          status: "error",
+          message: "Invalid query parameters"
+        });
+      }
 
-   let limit=parseInt(req.query.limit)||10;
+      let order = req.query.order || "asc";
 
-   if(limit>50){
-      limit=50;
-   }
+      if (!allowedOrder.includes(order)) {
+        return res.status(422).json({
+          status: "error",
+          message: "Invalid query parameters"
+        });
+      }
 
-   const skip=(page-1)*limit;
+      sort[req.query.sort_by] = order === "desc" ? -1 : 1;
+    }
 
-   const total=
-   await Profile.countDocuments(query);
+    
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
 
-   const data=
-   await Profile.find(query)
-   .sort(sort)
-   .skip(skip)
-   .limit(limit);
+    if (limit > 50) limit = 50;
 
-   return res.json({
-      status:"success",
+    const skip = (page - 1) * limit;
+
+
+    const total = await Profile.countDocuments(query);
+
+    const data = await Profile.find(query)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit);
+
+ 
+    return res.json({
+      status: "success",
       page,
       limit,
       total,
       data
-   });
+    });
 
- } catch(e){
-
-   return res.status(500).json({
-      status:"error",
-      message:"Server failure"
-   });
-
- }
-
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Server failure"
+    });
+  }
 });
 
 
-router.get("/search", async (req,res)=>{
+router.get("/search", async (req, res) => {
 
- try {
+  try {
 
-   const q=req.query.q;
+    const q = req.query.q;
 
-   if(!q){
+    if (!q || q.trim() === "") {
       return res.status(400).json({
-       status:"error",
-       message:"Missing parameter"
+        status: "error",
+        message: "Missing parameter"
       });
-   }
+    }
 
-   const filters=
-   parseNaturalQuery(q);
+    const filters = parseNaturalQuery(q);
 
-   if(!filters){
+    if (!filters || Object.keys(filters).length === 0) {
       return res.status(400).json({
-       status:"error",
-       message:"Unable to interpret query"
+        status: "error",
+        message: "Unable to interpret query"
       });
-   }
+    }
 
-   let page=parseInt(req.query.page)||1;
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
 
-   let limit=parseInt(req.query.limit)||10;
+    if (limit > 50) limit = 50;
 
-   if(limit>50){
-      limit=50;
-   }
+    const skip = (page - 1) * limit;
 
-   const skip=(page-1)*limit;
+    const total = await Profile.countDocuments(filters);
 
-   const total=
-   await Profile.countDocuments(filters);
+    const data = await Profile.find(filters)
+      .skip(skip)
+      .limit(limit);
 
-   const data=
-   await Profile.find(filters)
-   .skip(skip)
-   .limit(limit);
-
-   return res.json({
-      status:"success",
+    return res.json({
+      status: "success",
       page,
       limit,
       total,
       data
-   });
+    });
 
- } catch(e){
-
-   return res.status(500).json({
-      status:"error",
-      message:"Server failure"
-   });
-
- }
-
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Server failure"
+    });
+  }
 });
 
 
-module.exports=router;
+module.exports = router;

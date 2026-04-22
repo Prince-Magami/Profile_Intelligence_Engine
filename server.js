@@ -28,16 +28,18 @@ app.get("/seed", async (req, res) => {
   try {
     const filePath = path.join(__dirname, "data", "profiles-2026.json");
     const rawData = fs.readFileSync(filePath);
-    const profiles = JSON.parse(rawData);
+    const json = JSON.parse(rawData);
 
-    const existingCount = await Profile.countDocuments();
-    if (existingCount > 0) {
-      return res.json({
-        status: "success",
-        message: "Database already seeded",
-        total: existingCount
+    const profiles = json.profiles || json;
+
+    if (!Array.isArray(profiles)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid seed file structure"
       });
     }
+
+    await Profile.deleteMany({}); 
 
     await Profile.insertMany(profiles);
 

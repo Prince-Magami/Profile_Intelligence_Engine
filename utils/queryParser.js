@@ -1,45 +1,36 @@
 function parseNaturalQuery(q) {
-  if (!q || !q.trim()) return null;
+  q = q.toLowerCase();
 
-  const s = q.toLowerCase();
+  let filters = {};
 
-  const filters = {};
-
-  if (s.includes("young")) {
-    filters.min_age = 16;
-    filters.max_age = 24;
-  }
-
-  if (s.includes("male")) {
+  if (q.includes("male")) {
     filters.gender = "male";
   }
-
-  if (s.includes("female")) {
+  if (q.includes("female")) {
     filters.gender = "female";
   }
 
-  if (s.includes("adult")) {
-    filters.age_group = "adult";
+  if (q.includes("nigeria")) filters.country_id = "NG";
+  if (q.includes("ghana")) filters.country_id = "GH";
+  if (q.includes("kenya")) filters.country_id = "KE";
+  if (q.includes("uganda")) filters.country_id = "UG";
+  if (q.includes("tanzania")) filters.country_id = "TZ";
+  if (q.includes("south africa")) filters.country_id = "ZA";
+
+  if (q.includes("young")) {
+    filters.age = { $gte: 16, $lte: 24 };
   }
 
-  if (s.includes("teenager")) {
+  if (q.includes("teenager")) {
     filters.age_group = "teenager";
   }
 
-  if (s.includes("above 30")) {
-    filters.min_age = 30;
+  if (q.includes("adult")) {
+    filters.age_group = "adult";
   }
 
-  if (s.includes("nigeria")) {
-    filters.country_id = "NG";
-  }
-
-  if (s.includes("kenya")) {
-    filters.country_id = "KE";
-  }
-
-  if (s.includes("angola")) {
-    filters.country_id = "AO";
+  if (q.includes("senior")) {
+    filters.age_group = "senior";
   }
 
   if (Object.keys(filters).length === 0) {

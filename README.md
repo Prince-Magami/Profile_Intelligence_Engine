@@ -16,7 +16,7 @@ It upgrades a basic profile storage system into a queryable intelligence engine 
 
 ## Base URL
 
-https://your-railway-domain.up.railway.app
+https://profile-intelligence-engine-tm4g.onrender.com/
 
 
 ## Tech Stack
@@ -25,7 +25,7 @@ https://your-railway-domain.up.railway.app
 - Express
 - MongoDB
 - Mongoose
-- Railway
+- Render
 
 
 ## Database Schema

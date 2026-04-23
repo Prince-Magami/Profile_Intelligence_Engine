@@ -6,52 +6,57 @@ const fs = require("fs");
 const path = require("path");
 
 const connectDB = require("./db");
-const Profile = require("./models/Profile"); 
+const Profile = require("./models/Profile");
 const profileRoutes = require("./routes/profiles");
 
 const app = express();
 
-connectDB();
+connectDB()
+  .then(async () => {
+    try {
+      const count = await Profile.countDocuments();
 
-connectDB().then(async () => {
-  try {
-    const count = await Profile.countDocuments();
+      if (count === 0) {
+        console.log("Auto-seeding database...");
 
-    if (count === 0) {
-      console.log("Auto-seeding database...");
+        const filePath = path.join(__dirname, "data", "profiles-2026.json");
+        const raw = fs.readFileSync(filePath, "utf-8");
+        const json = JSON.parse(raw);
 
-      const fs = require("fs");
-      const path = require("path");
+        const profiles = json.profiles || json;
 
-      const filePath = path.join(__dirname, "data", "profiles-2026.json");
-      const raw = fs.readFileSync(filePath, "utf-8");
-      const json = JSON.parse(raw);
+        if (!Array.isArray(profiles)) {
+          console.log("Invalid seed structure");
+          return;
+        }
 
-      const profiles = json.profiles;
+        const formatted = profiles.map((p, i) => ({
+          id: `${Date.now()}-${i}`,
+          name: p.name,
+          gender: p.gender,
+          gender_probability: p.gender_probability,
+          age: p.age,
+          age_group: p.age_group,
+          country_id: p.country_id,
+          country_name: p.country_name,
+          country_probability: p.country_probability,
+          created_at: new Date().toISOString()
+        }));
 
-      const formatted = profiles.map((p, i) => ({
-        id: `${Date.now()}-${i}`,
-        name: p.name,
-        gender: p.gender,
-        gender_probability: p.gender_probability,
-        age: p.age,
-        age_group: p.age_group,
-        country_id: p.country_id,
-        country_name: p.country_name,
-        country_probability: p.country_probability,
-        created_at: new Date().toISOString()
-      }));
+        await Profile.insertMany(formatted);
 
-      await Profile.insertMany(formatted);
-
-      console.log("Auto-seeding complete:", formatted.length);
-    } else {
-      console.log("Database already contains data:", count);
+        console.log("Auto-seeding complete:", formatted.length);
+      } else {
+        console.log("Database already contains data:", count);
+      }
+    } catch (err) {
+      console.error("Auto-seed error:", err);
     }
-  } catch (err) {
-    console.error("Auto-seed error:", err.message);
-  }
-});
+  })
+  .catch((err) => {
+    console.error("DB connection failed:", err.message);
+    process.exit(1);
+  });
 
 app.use(cors());
 app.use(express.json());
@@ -63,11 +68,10 @@ app.get("/", (req, res) => {
   });
 });
 
- 
 app.get("/seed", async (req, res) => {
   try {
     const filePath = path.join(__dirname, "data", "profiles-2026.json");
-    const rawData = fs.readFileSync(filePath);
+    const rawData = fs.readFileSync(filePath, "utf-8");
     const json = JSON.parse(rawData);
 
     const profiles = json.profiles || json;
@@ -79,25 +83,36 @@ app.get("/seed", async (req, res) => {
       });
     }
 
-    await Profile.deleteMany({}); 
+    await Profile.deleteMany({});
 
-    await Profile.insertMany(json.profiles);
+    const formatted = profiles.map((p, i) => ({
+      id: `${Date.now()}-${i}`,
+      name: p.name,
+      gender: p.gender,
+      gender_probability: p.gender_probability,
+      age: p.age,
+      age_group: p.age_group,
+      country_id: p.country_id,
+      country_name: p.country_name,
+      country_probability: p.country_probability,
+      created_at: new Date().toISOString()
+    }));
+
+    await Profile.insertMany(formatted);
 
     res.json({
       status: "success",
       message: "Database seeded successfully",
-      total: profiles.length
+      total: formatted.length
     });
 
   } catch (error) {
-    console.error("SEED ERROR:", error.message);
+    console.error("SEED ERROR:", error);
 
-    console.error("REAL ERROR:", e);
-
-return res.status(500).json({
-  status: "error",
-  message: e.message
-});
+    return res.status(500).json({
+      status: "error",
+      message: error.message
+    });
   }
 });
 

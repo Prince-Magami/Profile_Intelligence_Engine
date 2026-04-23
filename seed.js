@@ -1,115 +1,35 @@
-app.get("/seed", async (req, res) => {
-  try {
-    const fs = require("fs");
-    const path = require("path");
+require("dotenv").config();
 
-    console.log("STEP 1: Starting seed...");
+const fs = require("fs");
+const { v7: uuidv7 } = require("uuid");
+const connectDB = require("./db");
+const Profile = require("./models/Profile");
 
-    const filePath = path.join(__dirname, "data", "profiles-2026.json");
-    console.log("STEP 2: File path:", filePath);
+async function seed() {
+  await connectDB();
 
-    if (!fs.existsSync(filePath)) {
-      throw new Error("File does not exist");
-    }
+  const raw = fs.readFileSync("./data/profiles-2026.json");
+  const json = JSON.parse(raw);
 
-    const raw = fs.readFileSync(filePath, "utf-8");
-    console.log("STEP 3: File read success");
+  const profiles = json.profiles; 
 
-    const json = JSON.parse(raw);
-    console.log("STEP 4: JSON parsed");
+  const formatted = profiles.map(p => ({
+    id: uuidv7(),
+    name: p.name,
+    gender: p.gender,
+    gender_probability: p.gender_probability,
+    age: p.age,
+    age_group: p.age_group,
+    country_id: p.country_id,
+    country_name: p.country_name,
+    country_probability: p.country_probability,
+    created_at: new Date().toISOString()
+  }));
 
-    console.log("JSON KEYS:", Object.keys(json));
+  await Profile.insertMany(formatted);
 
-    const profiles = json.profiles;
-    console.log("STEP 5: Extracted profiles");
+  console.log("Seeding completed with correct structure.");
+  process.exit(0);
+}
 
-    if (!Array.isArray(profiles)) {
-      throw new Error("profiles is not an array");
-    }
-
-    console.log("STEP 6: Profiles length:", profiles.length);
-
-    await Profile.deleteMany({});
-    console.log("STEP 7: Database cleared");
-
-    await Profile.insertMany(profiles);app.get("/seed", async (req, res) => {
-  try {
-    const fs = require("fs");
-    const path = require("path");
-
-    const filePath = path.join(__dirname, "data", "profiles-2026.json");
-    const raw = fs.readFileSync(filePath, "utf-8");
-    const json = JSON.parse(raw);
-
-    const profiles = json.profiles;
-
-    if (!Array.isArray(profiles)) {
-      return res.status(500).json({
-        status: "error",
-        message: "Invalid profiles format"
-      });
-    }
-
-    // 🔥 Clear database
-    await Profile.deleteMany({});
-
-    let successCount = 0;
-    let failCount = 0;
-
-    for (const p of profiles) {
-      try {
-        if (!p.name) continue;
-
-        await Profile.create({
-          name: String(p.name),
-          gender: String(p.gender || ""),
-          gender_probability: Number(p.gender_probability || 0),
-          age: Number(p.age || 0),
-          age_group: String(p.age_group || ""),
-          country_id: String(p.country_id || ""),
-          country_name: String(p.country_name || ""),
-          country_probability: Number(p.country_probability || 0),
-          created_at: new Date().toISOString()
-        });
-
-        successCount++;
-      } catch (err) {
-        failCount++;
-      }
-    }
-
-    return res.json({
-      status: "success",
-      message: "Seeding completed",
-      inserted: successCount,
-      failed: failCount
-    });
-
-  } catch (err) {
-    console.error("SEED ERROR:", err);
-
-    return res.status(500).json({
-      status: "error",
-      message: err.message
-    });
-  }
-});
-    console.log("STEP 8: Inserted into DB");
-
-    const count = await Profile.countDocuments();
-    console.log("STEP 9: Count =", count);
-
-    return res.json({
-      status: "success",
-      total: count
-    });
-
-  } catch (err) {
-    console.error("❌ EXACT ERROR:", err);
-
-    return res.status(500).json({
-      status: "error",
-      message: err.message
-    });
-  }
-});
+seed();

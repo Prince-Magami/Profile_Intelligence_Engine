@@ -114,11 +114,6 @@ router.get("/", async (req, res) => {
 
     const total = await Profile.countDocuments(query);
 
-    const results = await Profile.find(query)
-  .sort(sort)
-  .skip(skip)
-  .limit(limit);
-
 const data = results.map(p => ({
   id: p.id,
   name: p.name,

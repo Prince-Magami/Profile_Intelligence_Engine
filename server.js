@@ -92,10 +92,12 @@ app.get("/seed", async (req, res) => {
   } catch (error) {
     console.error("SEED ERROR:", error.message);
 
-    res.status(500).json({
-      status: "error",
-      message: "Failed to seed database"
-    });
+    console.error("REAL ERROR:", e);
+
+return res.status(500).json({
+  status: "error",
+  message: e.message
+});
   }
 });
 

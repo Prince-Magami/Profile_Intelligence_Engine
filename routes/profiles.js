@@ -111,8 +111,12 @@ router.get("/", async (req, res) => {
 
     const skip = (page - 1) * limit;
 
-
     const total = await Profile.countDocuments(query);
+
+const results = await Profile.find(query)
+  .sort(sort)
+  .skip(skip)
+  .limit(limit);
 
 const data = results.map(p => ({
   id: p.id,
@@ -126,7 +130,6 @@ const data = results.map(p => ({
   country_probability: p.country_probability,
   created_at: p.created_at
 }));
-
 
     return res.json({
       status: "success",

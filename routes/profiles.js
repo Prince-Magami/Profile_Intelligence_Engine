@@ -114,12 +114,25 @@ router.get("/", async (req, res) => {
 
     const total = await Profile.countDocuments(query);
 
-    const data = await Profile.find(query)
-      .sort(sort)
-      .skip(skip)
-      .limit(limit);
+    const results = await Profile.find(query)
+  .sort(sort)
+  .skip(skip)
+  .limit(limit);
 
- 
+const data = results.map(p => ({
+  id: p.id,
+  name: p.name,
+  gender: p.gender,
+  gender_probability: p.gender_probability,
+  age: p.age,
+  age_group: p.age_group,
+  country_id: p.country_id,
+  country_name: p.country_name,
+  country_probability: p.country_probability,
+  created_at: p.created_at
+}));
+
+
     return res.json({
       status: "success",
       page,
